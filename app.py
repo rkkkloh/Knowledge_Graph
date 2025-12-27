@@ -1,6 +1,6 @@
 import streamlit as st
 import networkx as nx
-from modules.mock_backend import GraphManager
+from modules.backend import GraphManager
 import streamlit.components.v1 as components
 from pyvis.network import Network
 import tempfile
@@ -96,15 +96,36 @@ with st.sidebar:
     st.info("目前模式：Mocking (模擬後端)")
     
     # 專案存檔區塊
-    with st.expander("💾 存檔與讀取", expanded=True):
-        project_name = st.text_input("專案名稱", value="Harry_Potter_v1")
-        if st.button("儲存目前進度", use_container_width=True):
-            # 呼叫後端儲存
-            success, msg = st.session_state['manager'].save_graph(st.session_state['graph'], project_name)
-            if success:
-                st.success(msg)
-            else:
-                st.error(msg)
+    with st.expander("💾 專案管理 (Save/Load)", expanded=True):
+        # 1. 存檔功能
+        st.caption("儲存專案")
+        col_save_1, col_save_2 = st.columns([2, 1])
+        with col_save_1:
+            project_name = st.text_input("專案檔名", value="my_story", label_visibility="collapsed")
+        with col_save_2:
+            if st.button("Save", use_container_width=True):
+                success, msg = st.session_state['manager'].save_graph(st.session_state['graph'], project_name)
+                if success:
+                    st.toast(msg, icon="💾")
+                else:
+                    st.error(msg)
+        
+        st.markdown("---")
+        
+        # 2. 讀檔功能 (新增的部分)
+        st.caption("載入舊專案")
+        uploaded_file = st.file_uploader("選擇 JSON 檔案", type="json", label_visibility="collapsed")
+        
+        if uploaded_file is not None:
+            # 避免重複載入，可以檢查 session state 或直接執行
+            if st.button("Load Project", use_container_width=True):
+                new_graph, msg = st.session_state['manager'].load_graph(uploaded_file)
+                if new_graph:
+                    st.session_state['graph'] = new_graph
+                    st.toast(msg, icon="📂")
+                    st.rerun() # 重新整理頁面以顯示新圖
+                else:
+                    st.error(msg)
     
     st.markdown("---")
     st.caption("Designed by Group B")
