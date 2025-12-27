@@ -116,8 +116,8 @@ col_left, col_right = st.columns([1, 2], gap="large")
 with col_left:
     st.subheader("📝 編輯資料")
     
-    # 使用 Tabs 分頁切換，比一長串的輸入框更整潔
-    tab_char, tab_rel = st.tabs(["👤 新增角色", "🔗 建立關係"])
+    # 【修改點 1】這裡改成三個 Tabs
+    tab_char, tab_rel, tab_ai = st.tabs(["👤 新增角色", "🔗 建立關係", "🤖 AI 智慧萃取"])
     
     # --- Tab 1: 角色表單 ---
     with tab_char:
@@ -171,6 +171,56 @@ with col_left:
                         st.toast(msg, icon="🔗")
                     else:
                         st.error(msg)
+
+    # --- 【新增】Tab 3: AI 介面 ---
+    with tab_ai:
+        st.caption("貼上故事文本，讓 AI 自動幫您分析人物關係")
+        
+        # 1. 輸入區
+        source_text = st.text_area("故事文本", height=150, placeholder="請貼上一段小說內容...")
+        
+        if st.button("🚀 開始分析", use_container_width=True):
+            if not source_text:
+                st.warning("⚠️ 請先貼上文章內容！")
+            else:
+                with st.spinner("🤖 AI 正在閱讀故事並分析關係..."):
+                    # 呼叫模擬的 AI
+                    ai_nodes, ai_edges = st.session_state['manager'].simulate_ai_extraction(source_text)
+                    
+                    # 將結果暫存在 session_state，這樣按鈕按完才不會消失
+                    st.session_state['ai_result'] = {"nodes": ai_nodes, "edges": ai_edges}
+                    st.toast("分析完成！請確認下方結果", icon="✅")
+
+        # 2. 結果審核區 (如果有分析結果才顯示)
+        if 'ai_result' in st.session_state:
+            res = st.session_state['ai_result']
+            
+            st.divider()
+            st.markdown("#### 🕵️ 審核分析結果")
+            
+            # 顯示預覽表格 (使用 dataframe 比較美觀)
+            st.markdown("**發現的角色：**")
+            st.dataframe(res['nodes'], use_container_width=True)
+            
+            st.markdown("**發現的關係：**")
+            st.dataframe(res['edges'], use_container_width=True)
+            
+            # 確認匯入按鈕
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                if st.button("✅ 確認匯入圖譜", type="primary", use_container_width=True):
+                    msg = st.session_state['manager'].batch_import(
+                        st.session_state['graph'], res['nodes'], res['edges']
+                    )
+                    st.success(msg)
+                    # 清除暫存
+                    del st.session_state['ai_result']
+                    st.rerun() # 重新整理頁面以顯示新圖
+            
+            with btn_col2:
+                if st.button("🗑️ 放棄結果", use_container_width=True):
+                    del st.session_state['ai_result']
+                    st.rerun()
 
 # === 右側：視覺化與分析區 ===
 with col_right:

@@ -39,3 +39,49 @@ class GraphManager:
     def save_graph(self, graph, filename):
         """模擬存檔"""
         return True, f"💾 專案 '{filename}' 已儲存 (模擬模式)"
+    
+    def simulate_ai_extraction(self, text):
+        """
+        模擬 AI 從文字中抓取資料的過程。
+        回傳：(nodes列表, edges列表)
+        """
+        import time
+        time.sleep(1.5) # 模擬 AI 思考的延遲時間
+        
+        # 這裡我們寫死一些假資料，假裝是從文字裡抓出來的
+        # 實作真實 AI 時，這裡會換成 OpenAI API 的呼叫
+        mock_nodes = [
+            {"id": "馬份", "title": "史萊哲林學生", "type": "character"},
+            {"id": "史內卜", "title": "魔藥學教授", "type": "character"}
+        ]
+        
+        mock_edges = [
+            {"source": "史內卜", "target": "馬份", "label": "偏袒"},
+            {"source": "馬份", "target": "哈利波特", "label": "死對頭"}
+        ]
+        
+        return mock_nodes, mock_edges
+
+    def batch_import(self, graph, nodes, edges):
+        """
+        將 AI 分析確認後的資料，整批寫入圖譜
+        """
+        count_n = 0
+        count_e = 0
+        
+        # 匯入節點
+        for n in nodes:
+            if not graph.has_node(n["id"]):
+                graph.add_node(n["id"], **n) # **n 是把字典解包存進去
+                count_n += 1
+        
+        # 匯入關係
+        for e in edges:
+            # 確保兩端節點都存在，不然會報錯 (防呆)
+            if graph.has_node(e["source"]) and graph.has_node(e["target"]):
+                # 檢查是否已存在同樣關係
+                if not graph.has_edge(e["source"], e["target"]):
+                    graph.add_edge(e["source"], e["target"], label=e["label"])
+                    count_e += 1
+                    
+        return f"✅ 成功匯入 {count_n} 個新角色、{count_e} 條新關係！"
