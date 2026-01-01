@@ -15,68 +15,58 @@ st.set_page_config(
 )
 
 # --- 輔助函式：繪製 PyVis 圖表 ---
-def render_interactive_graph(nx_graph):
+def render_interactive_graph(nx_graph, physics_enabled=True):
     """
     將 NetworkX 圖轉換為 PyVis HTML 並在 Streamlit 中顯示
+    新增參數: physics_enabled (布林值) - 控制是否啟用物理引擎
     """
-    # 1. 建立 PyVis 网络物件
-    # height 設定畫布高度，bgcolor 設定背景色配合深色主題
     net = Network(height="600px", width="100%", bgcolor="#222831", font_color="white")
-    
-    # 2. 載入 NetworkX 資料
     net.from_nx(nx_graph)
     
-    # 3. 設置物理引擎與樣式 (這是讓圖漂亮的關鍵)
-    # 我們使用 'force_atlas_2based' 演算法，這是最適合展示知識圖譜的物理模型
-    net.set_options("""
-    var options = {
-      "nodes": {
-        "borderWidth": 2,
-        "color": {
-          "highlight": {
-            "border": "#00ADB5",
-            "background": "#393E46"
+    # 根據參數決定物理引擎設定
+    if physics_enabled:
+        net.set_options("""
+        var options = {
+          "nodes": {
+            "borderWidth": 2,
+            "color": { "highlight": { "border": "#00ADB5", "background": "#393E46" } },
+            "font": { "size": 16, "face": "tahoma" }
+          },
+          "edges": { "color": { "inherit": true }, "smooth": false },
+          "physics": {
+            "forceAtlas2Based": {
+              "gravitationalConstant": -50,
+              "centralGravity": 0.01,
+              "springLength": 100,
+              "springConstant": 0.08
+            },
+            "minVelocity": 0.75,
+            "solver": "forceAtlas2Based"
           }
-        },
-        "font": {
-          "size": 16,
-          "face": "tahoma"
         }
-      },
-      "edges": {
-        "color": {
-          "inherit": true
-        },
-        "smooth": false
-      },
-      "physics": {
-        "forceAtlas2Based": {
-          "gravitationalConstant": -50,
-          "centralGravity": 0.01,
-          "springLength": 100,
-          "springConstant": 0.08
-        },
-        "minVelocity": 0.75,
-        "solver": "forceAtlas2Based"
-      }
-    }
-    """)
+        """)
+    else:
+        # 關閉物理引擎 (固定位置模式)
+        net.toggle_physics(False)
+        net.set_options("""
+        var options = {
+          "nodes": {
+            "borderWidth": 2,
+            "color": { "highlight": { "border": "#00ADB5", "background": "#393E46" } },
+            "font": { "size": 16, "face": "tahoma" }
+          },
+          "edges": { "color": { "inherit": true }, "smooth": false }
+        }
+        """)
     
-    # 4. 生成 HTML 檔案 (使用暫存檔避免檔案權限問題)
     try:
-        # 建立一個暫存檔案
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
             net.save_graph(tmp_file.name)
-            # 讀取生成的 HTML 內容
             tmp_file.seek(0)
             html_content = tmp_file.read().decode('utf-8')
         
-        # 5. 在 Streamlit 顯示
         components.html(html_content, height=610, scrolling=False)
-        
-        # 清理暫存檔
         os.unlink(tmp_file.name)
-        
     except Exception as e:
         st.error(f"圖表繪製失敗: {e}")
 
@@ -116,6 +106,17 @@ with st.sidebar:
                     st.toast(msg, icon="💾")
                 else:
                     st.error(msg)
+
+        st.markdown("---")
+        st.header("👀 檢視設定")
+        
+        # 1. 搜尋功能 (Task 2)
+        # 取得所有角色清單，並加入一個 "無 (顯示全部)" 的選項
+        all_nodes = list(st.session_state['graph'].nodes())
+        search_target = st.selectbox("🔍 搜尋並聚焦角色", ["(顯示全部)"] + all_nodes)
+        
+        # 2. 物理引擎開關 (Task 3)
+        use_physics = st.toggle("啟動物理引擎 (動畫)", value=True)
         
         st.markdown("---")
         
@@ -144,8 +145,8 @@ col_left, col_right = st.columns([1, 2], gap="large")
 with col_left:
     st.subheader("📝 編輯資料")
     
-    # 【修改點 1】這裡改成三個 Tabs
-    tab_char, tab_rel, tab_ai = st.tabs(["👤 新增角色", "🔗 建立關係", "🤖 AI 智慧萃取"])
+    # 【修改】變成四個 Tabs
+    tab_char, tab_rel, tab_ai, tab_manage = st.tabs(["👤 新增", "🔗 連結", "🤖 AI", "⚙️ 管理"])
     
     # --- Tab 1: 角色表單 ---
     with tab_char:
@@ -255,6 +256,77 @@ with col_left:
                     del st.session_state['ai_result']
                     st.rerun()
 
+    # --- 【新增】Tab 4: 管理介面 (Task 1) ---
+    with tab_manage:
+        st.caption("修正或刪除既有的資料")
+        
+        # 區塊 A: 刪除功能
+        with st.expander("🗑️ 刪除資料", expanded=True):
+            del_type = st.radio("欲刪除的項目", ["角色", "關係"], horizontal=True)
+            
+            if del_type == "角色":
+                del_node = st.selectbox("選擇要刪除的角色", options=list(st.session_state['graph'].nodes()), key="del_node")
+                if st.button("確認刪除角色", type="primary", use_container_width=True):
+                    success, msg = st.session_state['manager'].delete_character(st.session_state['graph'], del_node)
+                    if success:
+                        st.toast(msg, icon="🗑️")
+                        st.rerun()
+                    else:
+                        st.error(msg)
+            
+            elif del_type == "關係":
+                # 製作 "來源 -> 目標" 的清單供選擇
+                edge_options = [f"{u} -> {v}" for u, v in st.session_state['graph'].edges()]
+                if not edge_options:
+                    st.info("目前沒有任何關係")
+                else:
+                    del_edge_str = st.selectbox("選擇要刪除的關係", options=edge_options, key="del_edge")
+                    if st.button("確認刪除關係", type="primary", use_container_width=True):
+                        u, v = del_edge_str.split(" -> ")
+                        success, msg = st.session_state['manager'].delete_relationship(st.session_state['graph'], u, v)
+                        if success:
+                            st.toast(msg, icon="🗑️")
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
+        # 區塊 B: 編輯功能
+        with st.expander("✏️ 修改資料", expanded=False):
+            edit_type = st.radio("欲修改的項目", ["角色描述", "關係標籤"], horizontal=True)
+            
+            if edit_type == "角色描述":
+                edit_node = st.selectbox("選擇角色", options=list(st.session_state['graph'].nodes()), key="edit_node")
+                # 預設填入目前的描述
+                current_desc = st.session_state['graph'].nodes[edit_node].get('title', '')
+                new_desc = st.text_area("更新描述", value=current_desc)
+                
+                if st.button("更新角色資料", use_container_width=True):
+                    success, msg = st.session_state['manager'].edit_character_description(st.session_state['graph'], edit_node, new_desc)
+                    if success:
+                        st.toast(msg, icon="✏️")
+                        st.rerun()
+                    else:
+                        st.error(msg)
+            
+            elif edit_type == "關係標籤":
+                edge_options = [f"{u} -> {v}" for u, v in st.session_state['graph'].edges()]
+                if not edge_options:
+                    st.info("目前沒有任何關係")
+                else:
+                    edit_edge_str = st.selectbox("選擇關係", options=edge_options, key="edit_edge")
+                    u, v = edit_edge_str.split(" -> ")
+                    # 取得目前的標籤
+                    current_label = st.session_state['graph'][u][v].get('label', '')
+                    new_label = st.text_input("更新關係類型 (Label)", value=current_label)
+                    
+                    if st.button("更新關係", use_container_width=True):
+                        success, msg = st.session_state['manager'].edit_relationship_label(st.session_state['graph'], u, v, new_label)
+                        if success:
+                            st.toast(msg, icon="✏️")
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
 # === 右側：視覺化與分析區 ===
 with col_right:
     st.subheader("📊 知識圖譜視覺化")
@@ -269,16 +341,35 @@ with col_right:
     c1.metric("角色", nodes_count, delta=f"+{nodes_count} (Total)")
     c2.metric("關係", edges_count, help="目前的連結總數")
     
-    # 計算密度 (這是一個專業的圖學指標，代表圖的複雜度)
+    # 計算密度
     density = nx.density(graph)
     c3.metric("圖譜密度", f"{density:.3f}", help="數值越高代表關係越緊密")
     
     st.markdown("---")
     
-    # 呼叫我們剛剛寫的視覺化函式
-    if nodes_count > 0:
+    # ⚠️【修正點】：這裡原本有一段舊的 render_interactive_graph(graph)，請確保已刪除！
+    
+    # 1. 決定要畫哪一張圖 (全圖 vs 搜尋結果)
+    final_graph = st.session_state['graph'] # 預設畫全圖
+    
+    # 確保搜尋變數存在 (防呆)
+    if 'search_target' not in locals() and 'search_target' not in globals():
+         search_target = "(顯示全部)"
+
+    if search_target != "(顯示全部)":
+        # 建立子圖：只包含目標節點 + 它的鄰居
+        target = search_target
+        # 找鄰居 (因為是有向圖，要找 predecessors 和 successors)
+        neighbors = set(final_graph.successors(target)) | set(final_graph.predecessors(target))
+        neighbors.add(target) # 把自己也加進去
+        final_graph = final_graph.subgraph(neighbors)
+        st.info(f"🔍 目前聚焦於：{target} (及其關聯角色)")
+
+    # 2. 呼叫視覺化函式 (傳入物理開關)
+    if final_graph.number_of_nodes() > 0:
         with st.spinner("正在運算物理佈局..."):
-            render_interactive_graph(graph)
+            # 這裡使用新的邏輯，並傳入物理開關參數
+            render_interactive_graph(final_graph, physics_enabled=use_physics)
     else:
         st.info("目前沒有資料，請在左側新增角色來開始！")
     
