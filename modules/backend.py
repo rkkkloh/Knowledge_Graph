@@ -10,15 +10,9 @@ class GraphManager:
             os.makedirs('data')
 
     def get_initial_graph(self):
-<<<<<<< Updated upstream
-        """回傳一個空的或預設的圖"""
-        G = nx.Graph()
-        # 預設範例 (您可以選擇是否保留)
-=======
         """建立初始圖表 (使用有向圖 DiGraph)"""
         G = nx.DiGraph()
         # 加入預設範例資料
->>>>>>> Stashed changes
         G.add_node("哈利波特", title="存活下來的男孩", type="character", group=1)
         G.add_node("榮恩", title="哈利的好友", type="character", group=1)
         G.add_edge("哈利波特", "榮恩", label="摯友")
@@ -32,11 +26,7 @@ class GraphManager:
 
     def add_relationship(self, graph, source, target, relation):
         if graph.has_edge(source, target):
-<<<<<<< Updated upstream
-            return False, f"⚠️ Relationship between '{source}' and '{target}' already exists."
-=======
             return False, f"⚠️ 關係 '{source} -> {target}' 已經存在。"
->>>>>>> Stashed changes
         graph.add_edge(source, target, label=relation)
         return True, f"🔗 已連結：{source} --[{relation}]--> {target}"
     
@@ -87,14 +77,8 @@ class GraphManager:
     def load_graph(self, uploaded_file):
         try:
             graph_data = json.load(uploaded_file)
-<<<<<<< Updated upstream
-            # 轉換回 NetworkX 物件
-            G = nx.node_link_graph(graph_data)
-            return G, f"📂 Successfully loaded graph from {uploaded_file.name}"
-=======
             G = nx.node_link_graph(graph_data, directed=True)
             return G, f"📂 成功讀取專案：{uploaded_file.name}"
->>>>>>> Stashed changes
         except Exception as e:
             return None, f"❌ 讀檔失敗：{str(e)}"
 
@@ -151,18 +135,6 @@ class GraphManager:
         """
         count_n = 0
         count_e = 0
-<<<<<<< Updated upstream
-        for n in nodes:
-            if not graph.has_node(n["id"]):
-                graph.add_node(n["id"], **n)
-                count_n += 1
-        for e in edges:
-            if graph.has_node(e["source"]) and graph.has_node(e["target"]):
-                if not graph.has_edge(e["source"], e["target"]):
-                    graph.add_edge(e["source"], e["target"], label=e["label"])
-                    count_e += 1
-        return f"✅ Batch imported {count_n} characters and {count_e} relationships."
-=======
         
         # 1. 匯入節點
         for n in nodes:
@@ -200,4 +172,3 @@ class GraphManager:
                     count_e += 1
                     
         return f"✅ 已處理 {count_n} 個新角色，並更新/新增 {count_e} 條關係！"
->>>>>>> Stashed changes
