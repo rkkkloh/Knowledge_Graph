@@ -2,57 +2,59 @@
 
 **Nexus Graph** 是一個結合 **AI 智慧萃取** 與 **手動編輯** 的強大工具，專為創作者、研究人員與讀者設計。透過直觀的圖形介面，您可以輕鬆建構、視覺化並管理複雜的角色關係網絡。
 
-## ✨ Features
+## ✨ Features (功能特色)
 
 - **🤖 AI 智慧分析**：整合 OpenAI GPT 模型，貼上故事文本即可自動萃取角色與關係。
 - **🕸️ 互動式視覺化**：使用物理引擎 (Physics-based) 繪製網絡圖，支援縮放、拖曳與動態調整。
 - **➡️ 有向圖支援 (Directed Graph)**：精準表達單向 (師徒) 與雙向 (朋友) 關係，並具備箭頭視覺引導。
-- **🛠️ 完整的編輯功能**：
-- **CRUD 管理**：支援新增、修改、刪除角色與關係。
-- **屬性設定**：可自訂角色描述與關係類型。
-
-- **💾 專案持久化**：支援 JSON 格式的存檔與讀檔，隨時保存您的創作進度。
+- **🛠️ 完整的 CRUD 編輯**：支援新增、修改、刪除角色與關係，並具備防止重複的防呆機制。
+- **🧪 自動化測試**：內建單元測試，確保後端邏輯的穩定性。
 
 ---
 
-## 📂 Architecture
+## 📂 Architecture (專案架構)
 
-本專案採用 **模組化 (Modular)** 設計，確保程式碼的擴充性與維護性：
+本專案採用 **模組化 (Modular)** 設計，將介面、邏輯與視覺化分離，提升維護性：
 
-### 1. `app.py` (Frontend)
+### 1. `app.py` (Frontend Entry)
 
-- **角色**：應用程式的入口與外觀。
-- **技術**：Streamlit, PyVis。
-- **功能**：負責繪製側邊欄、分頁 (Tabs)、表單輸入，以及將圖譜渲染為 HTML 互動圖表。
+- **角色**：程式入口與排版中心。
+- **功能**：負責 Streamlit 的頁面佈局、側邊欄控制、Tabs 分頁切換，以及接收使用者輸入。
 
-### 2. `modules/backend.py` (Backend)
+### 2. `modules/backend.py` (Core Logic)
 
 - **角色**：應用程式的大腦。
-- **技術**：NetworkX (DiGraph), OpenAI API。
 - **功能**：
-- `GraphManager` 類別封裝了所有邏輯。
-- 處理圖形演算法、檢查重複、增刪改查 (CRUD)。
-- 負責與 OpenAI API 溝通進行文本分析。
-- 處理 JSON 檔案的序列化與反序列化。
+- 封裝 `GraphManager` 類別。
+- 處理 NetworkX 圖形演算法 (CRUD)。
+- 串接 OpenAI API 進行文本分析。
+- 負責 JSON 檔案的存取與讀寫。
 
-### 3. `data/`
+### 3. `modules/visualization.py` (Visualization Engine)
 
-- 用來存放使用者儲存的專案檔案 (`.json`)。
+- **角色**：視覺化渲染引擎。
+- **功能**：
+- 負責將 NetworkX 轉換為 PyVis 互動圖表。
+- **JavaScript 注入**：處理進階功能（如：記憶節點位置、鏡頭縮放狀態、雙擊置中）。
+
+### 4. `test_backend.py` (Unit Tests)
+
+- **功能**：針對後端邏輯進行自動化測試，確保新增、刪除、編輯等功能運作正常。
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (快速開始)
 
 ### 1. 環境準備
 
 確保您的電腦已安裝 Python 3.8 或以上版本。
 
 ```bash
-# 1. Clone 專案 (若已下載可跳過)
+# 1. Clone 專案
 git clone https://github.com/your-username/Knowledge_Graph.git
 cd Knowledge_Graph
 
-# 2. 建立虛擬環境
+# 2. 建立並啟動虛擬環境
 python3 -m venv venv
 source venv/bin/activate  # macOS/Linux
 # venv\Scripts\activate   # Windows
@@ -61,22 +63,15 @@ source venv/bin/activate  # macOS/Linux
 
 ### 2. 安裝依賴套件
 
-我們已將所有必要的套件列於清單中。
+包含 Streamlit, NetworkX, OpenAI 以及測試用的 Pytest。
 
 ```bash
 pip install -r requirements.txt
+pip install pytest pytest-html  # 若 requirements 未包含測試套件，請手動安裝
 
 ```
 
-### 3. 設定 OpenAI API Key (選用)
-
-若要使用 AI 自動分析功能，您需要一組 OpenAI API Key。
-
-- 啟動程式後，可在左側側邊欄輸入 Key。
-
-### 4. 啟動程式
-
-請使用 Streamlit 指令啟動主程式：
+### 3. 啟動程式
 
 ```bash
 streamlit run app.py
@@ -85,12 +80,40 @@ streamlit run app.py
 
 ---
 
+## 🧪 Testing & Validation (測試與驗證)
+
+本專案包含完整的單元測試，用於驗證後端邏輯的正確性。
+
+### 1. 執行測試
+
+請在終端機（確保已進入 `venv`）執行以下指令：
+
+```bash
+# 執行測試並產生 HTML 報告
+python -m pytest --html=report.html
+
+```
+
+### 2. 查看測試結果
+
+- **終端機回饋**：若看到綠色的 `PASSED`，代表功能正常。
+- **網頁報告**：執行後會產生 `report.html` 檔案。
+- **Mac**: 在終端機輸入 `open report.html` 即可開啟。
+- **Windows**: 在檔案總管雙擊該檔案，或輸入 `start report.html`。
+- 這份報告詳細列出了每個測試案例（新增、刪除、防呆機制）的執行結果。
+
+---
+
 ## 📖 操作指南
 
-1. **新增資料**：使用左側的「新增角色」或「建立關係」分頁手動輸入。
-2. **AI 分析**：切換至「AI 智慧萃取」分頁，貼上小說文本，讓 AI 自動生成圖譜。
-3. **編輯/刪除**：在側邊欄的專案控制區，可選擇既有角色進行修改或刪除。
-4. **存取進度**：輸入專案名稱並點擊 Save，檔案將儲存於 `data/` 資料夾中。
+1. **手動編輯**：使用「新增/連結」分頁建立基礎資料。
+2. **AI 分析**：切換至「AI 智慧萃取」，貼上小說文本，讓 AI 自動生成。
+3. **視覺化互動**：
+
+- **拖曳**節點可固定位置（系統會自動記憶）。
+- **雙擊**空白處可重置視角。
+
+4. **專案管理**：支援將目前的進度存檔 (`Save`) 或讀取舊檔 (`Load`)。
 
 ---
 
@@ -99,8 +122,9 @@ streamlit run app.py
 - **Language**: Python 3.x
 - **Web Framework**: Streamlit
 - **Graph Engine**: NetworkX (DiGraph)
-- **Visualization**: PyVis (JavaScript based)
+- **Visualization**: PyVis (JavaScript injected)
 - **AI Model**: OpenAI GPT-4o / GPT-3.5-turbo
+- **Testing**: Pytest
 
 ---
 
