@@ -22,7 +22,7 @@ class GraphManager:
         if graph.has_node(name):
             return False, f"⚠️ 角色 '{name}' 已經存在。"
         graph.add_node(name, title=description, type="character", group=1)
-        return True, f"✅ 已新增角色：{name}"
+        return True, f"已新增角色：{name}"
 
     def add_relationship(self, graph, source, target, relation):
         # 在 DiGraph 中，has_edge(A, B) 只會檢查 A->B

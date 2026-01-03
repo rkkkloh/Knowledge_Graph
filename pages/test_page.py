@@ -89,7 +89,7 @@ with st.sidebar:
     )
     
     st.markdown("### Controls")
-    if st.button("Run Tests", type="primary", use_container_width=True):
+    if st.button("Run Tests", type="primary", width='stretch'):
         run_triggered = True
     else:
         run_triggered = False
@@ -137,7 +137,7 @@ if run_triggered:
             # Extract test names for a cleaner list
             test_lines = [line.split("::")[1].split(" ")[0] for line in result.stdout.split('\n') if "::" in line]
             if test_lines:
-                st.dataframe({"Passing Tests": test_lines}, use_container_width=True)
+                st.dataframe({"Passing Tests": test_lines}, width='stretch')
         else:
             st.error("Exceptions detected in the codebase.")
 

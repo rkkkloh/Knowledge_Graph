@@ -7,3 +7,6 @@ font = "sans serif"
 
 [server]
 runOnSave = true
+
+[ui]
+hideTopBar = false # 專業工具通常保留 TopBar 以顯示狀態，但您可以改 true 隱藏
