@@ -25,6 +25,7 @@ class GraphManager:
         return True, f"✅ 已新增角色：{name}"
 
     def add_relationship(self, graph, source, target, relation):
+        # 在 DiGraph 中，has_edge(A, B) 只會檢查 A->B
         if graph.has_edge(source, target):
             return False, f"⚠️ 關係 '{source} -> {target}' 已經存在。"
         graph.add_edge(source, target, label=relation)
@@ -77,6 +78,10 @@ class GraphManager:
     def load_graph(self, uploaded_file):
         try:
             graph_data = json.load(uploaded_file)
+<<<<<<< HEAD
+=======
+            # 讀檔時必須指定 directed=True，否則 NetworkX 可能會預設為無向圖
+>>>>>>> main
             G = nx.node_link_graph(graph_data, directed=True)
             return G, f"📂 成功讀取專案：{uploaded_file.name}"
         except Exception as e:

@@ -336,6 +336,10 @@ with col_left:
                 if st.button("🗑️ 放棄", use_container_width=True, key="btn_cancel_ai"):
                     del st.session_state['ai_result']
                     st.rerun()
+            with b2:
+                if st.button("🗑️ 放棄", use_container_width=True):
+                    del st.session_state['ai_result']
+                    st.rerun()
 
     # Tab 4: Delete / Edit
     with tab_manage:

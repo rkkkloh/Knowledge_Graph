@@ -1,3 +1,6 @@
 streamlit
 networkx
 pyvis
+openai
+pytest
+pytest-html
