@@ -213,7 +213,7 @@ with st.sidebar:
         with col_save_1:
             project_name = st.text_input("專案檔名", value="my_story", label_visibility="collapsed")
         with col_save_2:
-            if st.button("Save", use_container_width=True): 
+            if st.button("Save", width='stretch'): 
                 success, msg = st.session_state['manager'].save_graph(st.session_state['graph'], project_name)
                 if success: st.toast(msg, icon="💾")
                 else: st.error(msg)
@@ -240,7 +240,7 @@ with st.sidebar:
         # 讀檔
         uploaded_file = st.file_uploader("選擇 JSON 檔案", type="json", label_visibility="collapsed")
         if uploaded_file is not None:
-            if st.button("Load Project", use_container_width=True):
+            if st.button("Load Project", width='stretch'):
                 new_graph, msg = st.session_state['manager'].load_graph(uploaded_file)
                 if new_graph:
                     st.session_state['graph'] = new_graph
@@ -270,7 +270,7 @@ with col_left:
         with st.form("char_form", clear_on_submit=True):
             c_name = st.text_input("角色名稱 (必填)", placeholder="例如：哈利波特")
             c_desc = st.text_area("角色描述", placeholder="例如：葛來分多的學生...")
-            if st.form_submit_button("✨ 加入角色", use_container_width=True):
+            if st.form_submit_button("✨ 加入角色", width='stretch'):
                 if not c_name: st.error("❌ 請輸入角色名稱！")
                 else:
                     success, msg = st.session_state['manager'].add_character(
@@ -288,7 +288,7 @@ with col_left:
             with c2: target = st.selectbox("目標角色", options=current_nodes, key="tgt_select")
             relation = st.text_input("關係類型", placeholder="例如：朋友、敵人")
             
-            if st.form_submit_button("🔗 建立連結", use_container_width=True):
+            if st.form_submit_button("🔗 建立連結", width='stretch'):
                 if source == target: st.warning("⚠️ 來源與目標不能是同一個人！")
                 elif not relation: st.error("❌ 請輸入關係類型！")
                 else:
@@ -303,7 +303,7 @@ with col_left:
         st.caption("支援 OpenAI 與 Groq (貼上 Key 即可自動切換)")
         source_text = st.text_area("故事文本", height=150, placeholder="請貼上一段小說內容...")
         
-        if st.button("🚀 開始分析", use_container_width=True):
+        if st.button("🚀 開始分析", width='stretch'):
             if not source_text: st.warning("⚠️ 請先貼上文章內容！")
             elif not api_key: st.error("❌ 尚未設定 API Key！")
             else:
@@ -322,22 +322,22 @@ with col_left:
             res = st.session_state['ai_result']
             st.divider()
             st.markdown("#### 🕵️ 審核結果")
-            st.dataframe(res['nodes'], use_container_width=True)
-            st.dataframe(res['edges'], use_container_width=True)
+            st.dataframe(res['nodes'], width='stretch')
+            st.dataframe(res['edges'], width='stretch')
             
             b1, b2 = st.columns(2)
             with b1:
-                if st.button("✅ 確認匯入", type="primary", use_container_width=True, key="btn_confirm_ai"):
+                if st.button("✅ 確認匯入", type="primary", width='stretch', key="btn_confirm_ai"):
                     msg = st.session_state['manager'].batch_import(st.session_state['graph'], res['nodes'], res['edges'])
                     st.toast(msg, icon="✅")
                     del st.session_state['ai_result']
                     st.rerun()
             with b2:
-                if st.button("🗑️ 放棄", use_container_width=True, key="btn_cancel_ai"):
+                if st.button("🗑️ 放棄", width='stretch', key="btn_cancel_ai"):
                     del st.session_state['ai_result']
                     st.rerun()
             with b2:
-                if st.button("🗑️ 放棄", use_container_width=True):
+                if st.button("🗑️ 放棄", width='stretch'):
                     del st.session_state['ai_result']
                     st.rerun()
 
@@ -347,7 +347,7 @@ with col_left:
             del_type = st.radio("欲刪除的項目", ["角色", "關係"], horizontal=True)
             if del_type == "角色":
                 del_node = st.selectbox("選擇角色", options=list(st.session_state['graph'].nodes()), key="del_node")
-                if st.button("確認刪除", type="primary", use_container_width=True):
+                if st.button("確認刪除", type="primary", width='stretch'):
                     success, msg = st.session_state['manager'].delete_character(st.session_state['graph'], del_node)
                     if success: st.toast(msg, icon="🗑️"); st.rerun()
                     else: st.error(msg)
@@ -356,7 +356,7 @@ with col_left:
                 if not edge_options: st.info("無關係可刪除")
                 else:
                     del_edge_str = st.selectbox("選擇關係", options=edge_options, key="del_edge")
-                    if st.button("確認刪除", type="primary", use_container_width=True):
+                    if st.button("確認刪除", type="primary", width='stretch'):
                         u, v = del_edge_str.split(" -> ")
                         success, msg = st.session_state['manager'].delete_relationship(st.session_state['graph'], u, v)
                         if success: st.toast(msg, icon="🗑️"); st.rerun()
@@ -368,7 +368,7 @@ with col_left:
                 edit_node = st.selectbox("選擇角色", options=list(st.session_state['graph'].nodes()), key="edit_node")
                 current_desc = st.session_state['graph'].nodes[edit_node].get('title', '')
                 new_desc = st.text_area("更新描述", value=current_desc)
-                if st.button("更新", use_container_width=True):
+                if st.button("更新", width='stretch'):
                     success, msg = st.session_state['manager'].edit_character_description(st.session_state['graph'], edit_node, new_desc)
                     if success: st.toast(msg, icon="✏️"); st.rerun()
                     else: st.error(msg)
@@ -380,7 +380,7 @@ with col_left:
                     u, v = edit_edge_str.split(" -> ")
                     current_label = st.session_state['graph'][u][v].get('label', '')
                     new_label = st.text_input("更新關係類型", value=current_label)
-                    if st.button("更新", use_container_width=True):
+                    if st.button("更新", width='stretch'):
                         success, msg = st.session_state['manager'].edit_relationship_label(st.session_state['graph'], u, v, new_label)
                         if success: st.toast(msg, icon="✏️"); st.rerun()
                         else: st.error(msg)
