@@ -2,16 +2,13 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def render_sidebar():
-    """
-    渲染側邊欄：依照原始 app.py 的順序移植
-    """
     with st.sidebar:
         st.header("🎛️ 專案控制台")
 
         # --- API 設定 ---
-        st.header("🔑 API 設定")
-        st.info("💡 尚未擁有 Key？點擊下方按鈕免費產生：")
-        st.link_button("👉 產生 Groq API Key (免費)", "https://console.groq.com/keys")
+        st.header("API 設定")
+        st.info("尚未擁有 Key？點擊下方按鈕免費產生：")
+        st.link_button("產生 Groq API Key (免費)", "https://console.groq.com/keys")
         
         if 'api_key' not in st.session_state:
             st.session_state['api_key'] = ""
@@ -31,7 +28,58 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # --- 存檔區塊 (Expander) ---
+        # Undo / Redo 控制區
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("↩️ Undo", use_container_width=True):
+                new_graph, msg = st.session_state['manager'].undo()
+                if new_graph:
+                    st.session_state['graph'] = new_graph
+                    st.toast(msg)
+                    st.rerun()
+                else:
+                    st.toast(msg, icon="⚠️")
+        with c2:
+            if st.button("↪️ Redo", use_container_width=True):
+                new_graph, msg = st.session_state['manager'].redo()
+                if new_graph:
+                    st.session_state['graph'] = new_graph
+                    st.toast(msg)
+                    st.rerun()
+                else:
+                    st.toast(msg, icon="⚠️")
+
+        # 鍵盤監聽：Ctrl+Z / Cmd+Z
+        # 綁定到 window.parent.document 確保捕捉範圍涵蓋整個瀏覽器視窗
+        components.html(
+            """
+            <script>
+            (function() {
+                const doc = window.parent.document;
+                doc.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                        e.preventDefault();
+                        
+                        // 重新抓取 DOM 元件，避免 Stale Element Reference
+                        let buttons = Array.from(doc.querySelectorAll('button'));
+                        
+                        if (e.shiftKey) {
+                            let btn = buttons.find(b => b.innerText.includes("Redo"));
+                            if (btn) btn.click();
+                        } else {
+                            let btn = buttons.find(b => b.innerText.includes("Undo"));
+                            if (btn) btn.click();
+                        }
+                    }
+                });
+            })();
+            </script>
+            """,
+            height=0,
+        )
+
+        st.markdown("---")
+        
         with st.expander("💾 專案管理", expanded=True):
             col_save_1, col_save_2 = st.columns([2, 1])
             with col_save_1:
@@ -43,56 +91,58 @@ def render_sidebar():
                     else: st.error(msg)
 
         st.markdown("---")
-        
-        # --- 檢視設定 (獨立於 Expander 之外) ---
         st.header("👀 檢視設定")
         
         all_nodes = list(st.session_state['graph'].nodes())
         st.session_state['search_target'] = st.selectbox("🔍 搜尋並聚焦角色", ["(顯示全部)"] + all_nodes)
         
-        # 重置按鈕
-        if st.button("🔄 重置視角與位置"):
-            reset_js = """
+        if st.button("⚠️ Reset", type="primary", use_container_width=True):
+            success, msg = st.session_state['manager'].reset_graph(st.session_state['graph'])
+            
+            # 清除 JS 記憶並重新載入頁面
+            clear_js = """
             <script>
                 localStorage.removeItem("nexus_graph_positions");
                 localStorage.removeItem("nexus_graph_camera");
                 window.parent.location.reload();
             </script>
             """
-            components.html(reset_js, height=0)
-            st.rerun()
+            components.html(clear_js, height=0)
+            
+        st.markdown("---")
+
+        st.subheader("🏆 關鍵角色 Top 5")
+        
+        if hasattr(st.session_state['manager'], 'analyze_centrality'):
+            if st.session_state['graph'].number_of_nodes() > 0:
+                top_nodes = st.session_state['manager'].analyze_centrality(st.session_state['graph'])
+                for rank, (name, score) in enumerate(top_nodes, 1):
+                    st.write(f"**#{rank} {name}**")
+                    st.progress(score) 
+            else:
+                st.caption("尚無資料")
+        else:
+            st.caption("請更新 backend.py 啟用分析功能")
             
         st.markdown("---")
         
-        # --- 讀檔 (獨立於 Expander 之外) ---
         uploaded_file = st.file_uploader("選擇 JSON 檔案", type="json", label_visibility="collapsed")
         if uploaded_file is not None:
             if st.button("Load Project", width='stretch'):
                 new_graph, msg = st.session_state['manager'].load_graph(uploaded_file)
                 if new_graph:
                     st.session_state['graph'] = new_graph
-                    # 讀檔時清除快取
-                    reset_js = """
-                    <script>
-                        localStorage.removeItem("nexus_graph_positions");
-                        localStorage.removeItem("nexus_graph_camera");
-                        window.parent.location.reload();
-                    </script>
-                    """
-                    components.html(reset_js, height=0)
+                    components.html("<script>localStorage.removeItem('nexus_graph_positions'); window.parent.location.reload();</script>", height=0)
                     st.toast(msg, icon="📂")
                 else:
                     st.error(msg)
     
-        st.caption("Designed by Group B")
+        st.caption("Designed by Loh Rui Kang")
 
 def render_main_tabs():
-    """
-    渲染主畫面的分頁功能
-    """
     tab_char, tab_rel, tab_ai, tab_manage = st.tabs(["👤 新增", "🔗 連結", "🤖 AI", "⚙️ 管理"])
     
-    # --- Tab 1: 新增角色 ---
+    # 新增角色
     with tab_char:
         with st.form("char_form", clear_on_submit=True):
             c_name = st.text_input("角色名稱 (必填)", placeholder="例如：哈利波特")
@@ -106,7 +156,7 @@ def render_main_tabs():
                     if success: st.toast(msg, icon="✅")
                     else: st.error(msg)
 
-    # --- Tab 2: 建立連結 ---
+    # 建立連結
     with tab_rel:
         with st.form("rel_form", clear_on_submit=True):
             current_nodes = list(st.session_state['graph'].nodes())
@@ -125,12 +175,11 @@ def render_main_tabs():
                     if success: st.toast(msg, icon="🔗")
                     else: st.error(msg)
 
-    # --- Tab 3: AI 分析 ---
+    # AI 分析
     with tab_ai:
         st.caption("支援 OpenAI 與 Groq")
         source_text = st.text_area("故事文本", height=150, placeholder="請貼上一段小說內容...")
         
-        # 讀取 API Key
         api_key = st.session_state.get('api_key', '')
 
         if st.button("🚀 開始分析", width='stretch'):
@@ -148,7 +197,6 @@ def render_main_tabs():
                         st.session_state['ai_result'] = {"nodes": ai_nodes, "edges": ai_edges}
                         st.toast("分析完成！", icon="✅")
 
-        # 顯示 AI 結果
         if 'ai_result' in st.session_state:
             res = st.session_state['ai_result']
             st.divider()
@@ -168,7 +216,7 @@ def render_main_tabs():
                     del st.session_state['ai_result']
                     st.rerun()
 
-    # --- Tab 4: 管理 (刪除/修改) ---
+    # 管理功能
     with tab_manage:
         with st.expander("🗑️ 刪除資料", expanded=True):
             del_type = st.radio("欲刪除的項目", ["角色", "關係"], horizontal=True)
