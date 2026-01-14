@@ -24,41 +24,21 @@ if 'graph' not in st.session_state:
 with open('assets/style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# 3. 主標題
-st.title("🕸️ Nexus Graph 知識圖譜編輯器")
-st.markdown("---")
+# 3. 主標題（改成白色）
+st.markdown("""
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FFFFFF; font-size: 2.5em;">
+            🕸️ Nexus Graph 知識圖譜編輯器
+        </h1>
+    </div>
+""", unsafe_allow_html=True)
 
 # 4. 渲染側邊欄
 render_sidebar()
 
-# 5. 主畫面佈局
-col_left, col_right = st.columns([1, 2], gap="large")
+# 5. 渲染分頁主功能區
+render_main_tabs()
 
-with col_left:
-    st.subheader("📝 編輯資料")
-    render_main_tabs()
-
-with col_right:
-    st.subheader("📊 知識圖譜視覺化")
-    graph = st.session_state['graph']
-    
-    # 處理搜尋聚焦
-    final_graph = graph
-    # 確保 search_target 存在
-    if 'search_target' in st.session_state and st.session_state['search_target'] != "(顯示全部)":
-        target = st.session_state['search_target']
-        neighbors = set(graph.successors(target)) | set(graph.predecessors(target))
-        neighbors.add(target)
-        final_graph = graph.subgraph(neighbors)
-        st.info(f"🔍 聚焦於：{target}")
-
-    if final_graph.number_of_nodes() > 0:
-        render_interactive_graph(final_graph)
-    else:
-        st.info("目前沒有資料，請在左側新增角色！")
-    
-    st.divider()
-    c1, c2, c3 = st.columns(3)
-    c1.metric("角色總數", graph.number_of_nodes())
-    c2.metric("關係總數", graph.number_of_edges())
-    c3.metric("密度", f"{nx.density(graph):.3f}")
+# 6. 渲染圖形
+st.divider()
+render_interactive_graph(st.session_state['graph'])

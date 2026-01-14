@@ -1,107 +1,204 @@
 /* --- 全域設定 --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap");
 
-html, body, [class*="css"] {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+html,
+body,
+[class*="css"] {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* === 主體背景與配色 === */
+. stApp {
+  background-color: #131314;
+  color: #e3e3e3;
 }
 
 /* 強制修正深色模式下的文字顏色 */
-h1, h2, h3, h4, h5, h6, p, li, span, div, label {
-    color: #EEEEEE !important;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+li,
+span,
+div,
+label {
+  color: #eeeeee !important;
 }
 
 /* 讓連結顏色與主色調一致 */
 a {
-    color: #00ADB5 !important;
-    text-decoration: none;
+  color: #00adb5 !important;
+  text-decoration: none;
 }
 a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
+}
+
+/* === 隱藏頂部元素 === */
+[data-testid="stHeaderAction"] {
+  display: none !important;
+}
+
+[data-testid="stMarkdownContainer"] h1 > a,
+[data-testid="stMarkdownContainer"] h2 > a {
+  display: none !important;
+  pointer-events: none;
+}
+
+header[data-testid="stHeader"] {
+  background-color: transparent;
 }
 
 /* --- 側邊欄優化 --- */
-section[data-testid="stSidebar"] {
-    background-color: #393E46; /* 比主背景稍亮 */
-    border-right: 1px solid #4a4e57;
+[data-testid="stSidebar"] {
+  background-color: #1e1f20;
+  border-right: 1px solid #333;
+}
+
+/* === 側邊欄按鈕樣式 === */
+[data-testid="stSidebar"] button {
+  border-radius: 20px !important;
+  border: none !important;
+  text-align: left !important;
+  padding-left: 15px !important;
+}
+
+[data-testid="stSidebar"] button[kind="secondary"] {
+  background-color: transparent !important;
+  color: #c4c7c5 !important;
+}
+
+[data-testid="stSidebar"] button[kind="secondary"]:hover {
+  background-color: #303134 !important;
+}
+
+[data-testid="stSidebar"] button[kind="primary"] {
+  background-color: #00adb5 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+/* --- 輸入框與文字區域優化 --- */
+. stTextArea textarea,
+. stTextInput input {
+  background-color: #1e1f20;
+  color: #e3e3e3;
+  border: 1px solid #444746;
+  border-radius: 10px;
 }
 
 /* --- 指標卡片 (Metrics) 優化 --- */
 div[data-testid="stMetric"] {
-    background-color: #393E46;
-    border: 1px solid #4a4e57;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
+  background-color: #1e1f20;
+  border: 1px solid #444746;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
 }
 
 div[data-testid="stMetric"]:hover {
-    transform: translateY(-2px); /* 滑鼠懸停時微微上浮 */
-    border-color: #00ADB5;
+  transform: translateY(-2px);
+  border-color: #00adb5;
 }
 
 div[data-testid="stMetricLabel"] {
-    font-size: 0.9rem;
-    color: #b0b3b8 !important;
+  font-size: 0.9rem;
+  color: #b0b3b8 !important;
 }
 
 div[data-testid="stMetricValue"] {
-    color: #00ADB5 !important;
-    font-weight: 600;
+  color: #00adb5 !important;
+  font-weight: 600;
 }
 
 /* --- 表格 (DataFrame) 優化 --- */
 div[data-testid="stDataFrame"] {
-    border: 1px solid #4a4e57;
-    border-radius: 5px;
-    overflow: hidden;
+  border: 1px solid #444746;
+  border-radius: 5px;
+  overflow: hidden;
 }
 
 /* --- 按鈕優化 --- */
-/* 主按鈕 (Primary Button) */
 button[kind="primary"] {
-    background-color: #00ADB5;
-    border: none;
-    color: white !important;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-button[kind="primary"]:hover {
-    background-color: #008c93;
-    box-shadow: 0 4px 12px rgba(0, 173, 181, 0.4);
+  background-color: #00adb5;
+  border: none;
+  color: white !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border-radius: 10px;
 }
 
-/* 次要按鈕 (Secondary Button) */
-button[kind="secondary"] {
-    border: 1px solid #00ADB5;
-    color: #00ADB5 !important;
-    background-color: transparent;
+button[kind="primary"]:hover {
+  background-color: #008c93;
+  box-shadow: 0 4px 12px rgba(0, 173, 181, 0.4);
 }
+
+button[kind="secondary"] {
+  border: 1px solid #00adb5;
+  color: #00adb5 !important;
+  background-color: transparent;
+  border-radius: 10px;
+}
+
 button[kind="secondary"]:hover {
-    background-color: rgba(0, 173, 181, 0.1);
+  background-color: rgba(0, 173, 181, 0.1);
+}
+
+/* === Spinner 與 Alert 對齊 === */
+.stSpinner {
+  max-width: 800px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+div[data-testid="stSpinner"] {
+  max-width: 800px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
+}
+
+div[data-testid="stAlert"] {
+  max-width: 800px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* --- JSON 區塊優化 --- */
 div[data-testid="stJson"] {
-    background-color: #222831;
-    color: #EEEEEE;
-    border-radius: 5px;
-    padding: 10px;
-    border: 1px solid #444;
+  background-color: #1e1f20;
+  color: #eeeeee;
+  border-radius: 5px;
+  padding: 10px;
+  border: 1px solid #444746;
 }
 
-/* --- 自訂捲軸 (讓 Web App 看起來更像原生 App) --- */
+/* --- Expander 優化 --- */
+div[data-testid="stExpander"] {
+  background-color: #1e1f20;
+  border: 1px solid #444746;
+  border-radius: 10px;
+}
+
+/* --- 自訂捲軸 --- */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  width: 8px;
+  height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: #222831; 
+  background: #131314;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: #555; 
-    border-radius: 4px;
+  background: #555;
+  border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: #00ADB5; 
+  background: #00adb5;
 }
