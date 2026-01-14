@@ -13,7 +13,15 @@ def get_element_by_label(elements, label_text):
 # 測試 1: 檢查網頁標題與基本結構
 def test_app_loads():
     at = AppTest.from_file("app.py").run()
-    assert at.title[0].value == "🕸️ Nexus Graph 知識圖譜編輯器"
+    
+    # 所以 at.title 會是空的。這裡改為檢查 markdown 元件中是否包含標題文字。
+    found_title = False
+    for md in at.markdown:
+        if "Nexus Graph 知識圖譜編輯器" in md.value:
+            found_title = True
+            break
+            
+    assert found_title, "找不到應用程式標題"
     assert len(at.sidebar.header) > 0
 
 # 測試 2: 測試「新增角色」功能
@@ -48,7 +56,7 @@ def test_add_character_flow():
 def test_api_key_warning():
     at = AppTest.from_file("app.py").run()
     
-    # 1. [修正點] 先填寫故事文本，繞過第一個警告
+    # 1. 先填寫故事文本，繞過第一個警告
     text_area = get_element_by_label(at.text_area, "故事文本")
     if text_area:
         text_area.input("這是一段測試用的假故事，用來騙過第一道檢查。").run()
