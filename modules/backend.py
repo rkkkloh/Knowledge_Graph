@@ -2,7 +2,6 @@ import networkx as nx
 import json
 import os
 from openai import OpenAI
-# 注意：已經不需要 import re 和 snownlp 了！
 
 class GraphManager:
     def __init__(self):
@@ -63,29 +62,29 @@ class GraphManager:
         if saved_graph:
             return saved_graph
         G = nx.DiGraph()
-        G.add_node("哈利波特", title="存活下來的男孩", type="character", group=1)
-        G.add_node("榮恩", title="哈利的好友", type="character", group=1)
-        G.add_edge("哈利波特", "榮恩", label="摯友", color="#4CAF50")
+        G.add_node("哈利波特", title="存活下來的男孩", type="character", group=1, chapter=1)
+        G.add_node("榮恩", title="哈利的好友", type="character", group=1, chapter=1)
+        G.add_edge("哈利波特", "榮恩", label="摯友", color="#4CAF50", chapter=1, timeline={"1": {'label': "摯友", 'color': "#4CAF50"}})
         self._autosave(G, push_history=True)
         return G
 
     def reset_graph(self, graph):
         graph.clear()
-        graph.add_node("哈利波特", title="存活下來的男孩", type="character", group=1)
-        graph.add_node("榮恩", title="哈利的好友", type="character", group=1)
-        graph.add_edge("哈利波特", "榮恩", label="摯友", color="#4CAF50")
+        graph.add_node("哈利波特", title="存活下來的男孩", type="character", group=1, chapter=1)
+        graph.add_node("榮恩", title="哈利的好友", type="character", group=1, chapter=1)
+        graph.add_edge("哈利波特", "榮恩", label="摯友", color="#4CAF50", chapter=1, timeline={"1": {'label': "摯友", 'color': "#4CAF50"}})
         self._autosave(graph, push_history=True)
         return True, "系統已重置為預設狀態"
 
-    def add_character(self, graph, name, description):
+    def add_character(self, graph, name, description, chapter=1):
         if graph.has_node(name): return False, f"角色 '{name}' 已經存在。"
-        graph.add_node(name, title=description, type="character", group=1)
+        graph.add_node(name, title=description, type="character", group=1, chapter=chapter)
         self._autosave(graph, push_history=True)
         return True, f"已新增角色：{name}"
 
-    def add_relationship(self, graph, source, target, relation):
+    def add_relationship(self, graph, source, target, relation, chapter=1):
         if graph.has_edge(source, target): return False, f"關係 '{source} -> {target}' 已經存在。"
-        graph.add_edge(source, target, label=relation)
+        graph.add_edge(source, target, label=relation, chapter=chapter, timeline={str(chapter): {'label': relation, 'color': '#9E9E9E'}})
         self._autosave(graph, push_history=True)
         return True, f"已連結：{source} --[{relation}]--> {target}"
     
@@ -112,7 +111,11 @@ class GraphManager:
         
     def edit_relationship_label(self, graph, source, target, new_label):
         if graph.has_edge(source, target):
-            graph[source][target]['label'] = new_label
+            edge_data = graph[source][target]
+            edge_data['label'] = new_label
+            if 'timeline' in edge_data and edge_data['timeline']:
+                latest_chap = max(edge_data['timeline'].keys())
+                edge_data['timeline'][latest_chap]['label'] = new_label
             self._autosave(graph, push_history=True)
             return True, f"已更新關係：{source} --[{new_label}]--> {target}"
         return False, f"找不到關係：{source} -> {target}"
@@ -136,9 +139,6 @@ class GraphManager:
         except Exception as e:
             return None, f"讀檔失敗：{str(e)}"
 
-    # =========================================================
-    # 純 LLM 智慧分析核心 (無需 SnowNLP)
-    # =========================================================
     def process_text_with_ai(self, text, api_key):
         if api_key.startswith("gsk_"):
             client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
@@ -147,19 +147,17 @@ class GraphManager:
             client = OpenAI(api_key=api_key)
             model_name = "gpt-4o"
 
-        # 【關鍵優化】把所有判斷邏輯交給世界上最聰明的大腦
         system_prompt = """
         你是一個知識圖譜專家與心理學大師。請從使用者的文本中萃取「實體(Nodes)」與「關係(Edges)」。
         
         【任務要求】：
-        1. 簡介 (title)：為每個實體生成一句 15 字以內的角色簡介。
-        2. 關係顏色 (color)：請根據故事的真實上下文，精準判斷這段關係的屬性，並給予對應的顏色代碼：
-           - 若為明確的敵對、仇恨、對立、負面關係，請給 "#F44336" (紅色)。
-           - 若為明確的友善、保護、同盟、正面關係，請給 "#4CAF50" (綠色)。
-           - 若為單純的客觀事件、商業交易、問路、路人或情緒中立，請給 "#9E9E9E" (灰色)。
+        1. 簡介 (title)：為每個實體生成一句 15 字以內的角色簡介。請注意，不要萃取地點、物品或金錢等非角色實體。
+        2. 關係顏色 (color)：請精準判斷這段關係的屬性：
+           - 若為明確的敵對、仇恨、對立，請給 "#F44336" (紅色)。
+           - 若為明確的友善、保護、同盟，請給 "#4CAF50" (綠色)。
+           - 若為單純的客觀事件、商業交易、情緒中立，請給 "#9E9E9E" (灰色)。
 
-        務必回傳純 JSON 格式。
-        格式如下：
+        務必回傳純 JSON 格式：
         {
             "nodes": [{"id": "實體名稱", "title": "角色簡介(AI生成)"}],
             "edges": [{"source": "實體名稱", "target": "實體名稱", "label": "關係類型", "color": "顏色代碼"}]
@@ -177,7 +175,7 @@ class GraphManager:
         except Exception as e:
             return [], [], str(e)
 
-    def batch_import(self, graph, nodes, edges):
+    def batch_import(self, graph, nodes, edges, chapter=1):
         count_n = 0
         count_e = 0
         for n in nodes:
@@ -185,7 +183,8 @@ class GraphManager:
             if node_id:
                 if not graph.has_node(node_id):
                     attrs = {k: v for k, v in n.items() if k not in ['id', 'name']}
-                    attrs['group'] = 1 # 全角色預設藍色
+                    attrs['group'] = 1
+                    attrs['chapter'] = chapter
                     graph.add_node(node_id, **attrs)
                     count_n += 1
                     
@@ -193,20 +192,27 @@ class GraphManager:
             source = e.get("source")
             target = e.get("target")
             label = e.get("label", "related")
-            # LLM 會自動給顏色，如果沒給再預設灰色
             color = e.get("color", "#9E9E9E")
             
             if source and target:
-                if not graph.has_node(source): graph.add_node(source, title="Auto", type="character", group=1)
-                if not graph.has_node(target): graph.add_node(target, title="Auto", type="character", group=1)
+                if not graph.has_node(source): graph.add_node(source, title="Auto", type="character", group=1, chapter=chapter)
+                if not graph.has_node(target): graph.add_node(target, title="Auto", type="character", group=1, chapter=chapter)
                 
                 if graph.has_edge(source, target):
-                    if graph[source][target].get('label') != label or graph[source][target].get('color') != color:
-                        graph[source][target]['label'] = label
-                        graph[source][target]['color'] = color
-                        count_e += 1
+                    edge_data = graph[source][target]
+                    if 'timeline' not in edge_data:
+                        orig_chap = edge_data.get('chapter', 1)
+                        edge_data['timeline'] = {str(orig_chap): {'label': edge_data.get('label'), 'color': edge_data.get('color')}}
+                    
+                    edge_data['timeline'][str(chapter)] = {'label': label, 'color': color}
+                    
+                    if chapter >= edge_data.get('chapter', 1):
+                        edge_data['chapter'] = chapter
+                        edge_data['label'] = label
+                        edge_data['color'] = color
+                    count_e += 1
                 else:
-                    graph.add_edge(source, target, label=label, color=color)
+                    graph.add_edge(source, target, label=label, color=color, chapter=chapter, timeline={str(chapter): {'label': label, 'color': color}})
                     count_e += 1
         
         self._autosave(graph, push_history=True)

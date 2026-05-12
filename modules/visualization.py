@@ -6,14 +6,9 @@ import os
 import json
 
 def render_interactive_graph(nx_graph):
-    """
-    產生 PyVis 圖表並注入 JS。
-    """
-    # 初始化 PyVis
     net = Network(height="700px", width="100%", bgcolor="#222831", font_color="white", directed=True)
     net.from_nx(nx_graph)
     
-    # 參數設定
     options = {
         "nodes": {
             "borderWidth": 2,
@@ -31,7 +26,6 @@ def render_interactive_graph(nx_graph):
         },
         "edges": {
             "arrows": { "to": { "enabled": True, "scaleFactor": 1.0 } },
-            # [關鍵修正]：將 inherit 改為 False，這樣紅色跟綠色的線條才顯示得出來！
             "color": { "inherit": False, "opacity": 0.8 },
             "font": {
                 "size": 16, "color": "#00ADB5", "background": "#222831",
@@ -63,7 +57,6 @@ def render_interactive_graph(nx_graph):
     
     net.set_options(f"var options = {json.dumps(options)}")
     
-    # 生成 HTML
     try:
         html_data = net.generate_html()
     except AttributeError:
@@ -73,7 +66,6 @@ def render_interactive_graph(nx_graph):
                 html_data = f.read()
             os.unlink(tmp.name)
 
-    # JS 注入 (完全不變，保留您原本的拖曳記憶功能)
     js_injection = """
     <script type="text/javascript">
         var isFirstLoad = true;
@@ -82,7 +74,6 @@ def render_interactive_graph(nx_graph):
             if (!isFirstLoad) return;
             isFirstLoad = false;
 
-            // 1. 恢復座標
             var savedPositions = localStorage.getItem("nexus_graph_positions");
             var currentNodes = nodes.getIds();
             var existingNodeIds = new Set();
@@ -104,7 +95,6 @@ def render_interactive_graph(nx_graph):
                 });
             }
 
-            // 2. 恢復鏡頭
             var savedCamera = localStorage.getItem("nexus_graph_camera");
             if (savedCamera) {
                 var cameraState = JSON.parse(savedCamera);
@@ -128,13 +118,8 @@ def render_interactive_graph(nx_graph):
             
             saveNodePositions();
 
-            setTimeout(function() {
-                network.startSimulation();
-            }, 100);
-
-            setTimeout(function() {
-                saveNodePositions();
-            }, 3000);
+            setTimeout(function() { network.startSimulation(); }, 100);
+            setTimeout(function() { saveNodePositions(); }, 3000);
         });
 
         network.on("dragEnd", function (params) {

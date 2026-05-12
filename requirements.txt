@@ -4,4 +4,3 @@ pyvis
 openai
 pytest
 pytest-html
-snownlp
