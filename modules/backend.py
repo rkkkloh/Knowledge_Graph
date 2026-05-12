@@ -1,9 +1,8 @@
 import networkx as nx
 import json
 import os
-import re
 from openai import OpenAI
-from snownlp import SnowNLP
+# 注意：已經不需要 import re 和 snownlp 了！
 
 class GraphManager:
     def __init__(self):
@@ -137,39 +136,9 @@ class GraphManager:
         except Exception as e:
             return None, f"讀檔失敗：{str(e)}"
 
-    def _analyze_edge_sentiment_with_nlp(self, source, target, full_text, edge_label):
-        # 1. 優先判斷 LLM 萃取的關係
-        negative_labels = ["敵", "仇", "對立", "恨", "反派", "惡", "殺", "背叛"]
-        if any(neg in edge_label for neg in negative_labels):
-            return "#F44336" 
-            
-        positive_labels = ["友", "愛", "幫", "救", "保護", "兄弟", "夥伴", "盟", "同伴", "恩"]
-        if any(pos in edge_label for pos in positive_labels):
-            return "#4CAF50" 
-
-        # [新增] 2. 判斷是否為「中立動作」，防止 SnowNLP 被背景文字（如黑暗森林）干擾
-        neutral_labels = ["問", "詢", "認識", "說", "遇見", "道別", "路人", "指", "對話"]
-        if any(neu in edge_label for neu in neutral_labels):
-            return "#9E9E9E"
-
-        # 3. 都不符合，才交給 SnowNLP 算分數
-        sentences = re.split(r'[。！？.!?\n]', full_text)
-        relevant_sentences = [s for s in sentences if source in s or target in s]
-        
-        if not relevant_sentences:
-            return "#9E9E9E" 
-            
-        text_to_analyze = " ".join(relevant_sentences)
-        s = SnowNLP(text_to_analyze)
-        score = s.sentiments 
-        
-        if score >= 0.65:
-            return "#4CAF50" 
-        elif score <= 0.35:
-            return "#F44336" 
-        else:
-            return "#9E9E9E" 
-
+    # =========================================================
+    # 純 LLM 智慧分析核心 (無需 SnowNLP)
+    # =========================================================
     def process_text_with_ai(self, text, api_key):
         if api_key.startswith("gsk_"):
             client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
@@ -178,14 +147,22 @@ class GraphManager:
             client = OpenAI(api_key=api_key)
             model_name = "gpt-4o"
 
+        # 【關鍵優化】把所有判斷邏輯交給世界上最聰明的大腦
         system_prompt = """
-        你是一個知識圖譜專家。請從使用者的文本中萃取「實體(Nodes)」與「關係(Edges)」。
-        請為每個實體生成一句 15 字以內的角色簡介。
+        你是一個知識圖譜專家與心理學大師。請從使用者的文本中萃取「實體(Nodes)」與「關係(Edges)」。
+        
+        【任務要求】：
+        1. 簡介 (title)：為每個實體生成一句 15 字以內的角色簡介。
+        2. 關係顏色 (color)：請根據故事的真實上下文，精準判斷這段關係的屬性，並給予對應的顏色代碼：
+           - 若為明確的敵對、仇恨、對立、負面關係，請給 "#F44336" (紅色)。
+           - 若為明確的友善、保護、同盟、正面關係，請給 "#4CAF50" (綠色)。
+           - 若為單純的客觀事件、商業交易、問路、路人或情緒中立，請給 "#9E9E9E" (灰色)。
+
         務必回傳純 JSON 格式。
         格式如下：
         {
             "nodes": [{"id": "實體名稱", "title": "角色簡介(AI生成)"}],
-            "edges": [{"source": "實體名稱", "target": "實體名稱", "label": "關係類型"}]
+            "edges": [{"source": "實體名稱", "target": "實體名稱", "label": "關係類型", "color": "顏色代碼"}]
         }
         """
         try:
@@ -196,17 +173,7 @@ class GraphManager:
             )
             raw = response.choices[0].message.content
             res = json.loads(raw)
-            
-            nodes = res.get("nodes", [])
-            edges = res.get("edges", [])
-            
-            for edge in edges:
-                source = edge.get("source")
-                target = edge.get("target")
-                label = edge.get("label", "")
-                edge["color"] = self._analyze_edge_sentiment_with_nlp(source, target, text, label)
-                
-            return nodes, edges, None
+            return res.get("nodes", []), res.get("edges", []), None
         except Exception as e:
             return [], [], str(e)
 
@@ -218,7 +185,7 @@ class GraphManager:
             if node_id:
                 if not graph.has_node(node_id):
                     attrs = {k: v for k, v in n.items() if k not in ['id', 'name']}
-                    attrs['group'] = 1
+                    attrs['group'] = 1 # 全角色預設藍色
                     graph.add_node(node_id, **attrs)
                     count_n += 1
                     
@@ -226,6 +193,7 @@ class GraphManager:
             source = e.get("source")
             target = e.get("target")
             label = e.get("label", "related")
+            # LLM 會自動給顏色，如果沒給再預設灰色
             color = e.get("color", "#9E9E9E")
             
             if source and target:
